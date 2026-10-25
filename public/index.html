@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Solar Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c1729; --card:#13233b; --line:#223552; --text:#e8eef8; --mut:#8ea3c0;
+  --amber:#f5a623; --green:#2fc77a; --red:#ef5d5d; --blue:#5aa9ff;
+  --font:"IBM Plex Sans Thai","Noto Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:light){
+  :root{--bg:#eef2f8; --card:#ffffff; --line:#d8e0ec; --text:#14233a; --mut:#5d708b;
+        --amber:#c97a00; --green:#12935a; --red:#cc3b3b; --blue:#1f6fd1}
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 var(--font);font-variant-numeric:tabular-nums}
+.wrap{max-width:1120px;margin:0 auto;padding:18px 16px 40px}
+header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between;margin-bottom:16px}
+h1{font-size:20px;font-weight:600;margin:0}
+.sub{color:var(--mut);font-size:13px;margin-top:2px}
+.status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--text);font-weight:500}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--mut)}
+.chip.ok .dot{background:var(--green)} .chip.warn .dot{background:var(--amber)} .chip.bad .dot{background:var(--red)}
+.banner{display:none;margin:0 0 14px;padding:10px 14px;border-radius:8px;border:1px solid var(--amber);color:var(--amber);font-size:14px}
+.banner.show{display:block}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.kpi .l{color:var(--mut);font-size:13px}
+.kpi .v{font-size:28px;font-weight:600;line-height:1.2;margin-top:4px}
+.kpi .v small{font-size:14px;font-weight:400;color:var(--mut);margin-left:4px}
+.kpi .s{color:var(--mut);font-size:12.5px;margin-top:2px;min-height:18px}
+.kpi.amber{border-top:3px solid var(--amber)}
+h2{font-size:15px;font-weight:600;margin:0 0 10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:6px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media (max-width:820px){.grid2{grid-template-columns:1fr}}
+.chart{position:relative}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .tip{position:absolute;pointer-events:none;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 9px;font-size:12.5px;white-space:nowrap;transform:translate(-50%,-100%);display:none;z-index:2}
+.empty{color:var(--mut);padding:36px 0;text-align:center;font-size:14px}
+.axis{fill:var(--mut);font-size:11px;font-family:var(--font)}
+.legend{display:flex;gap:14px;font-size:12.5px;color:var(--mut)}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.tabs{display:flex;gap:6px}
+.tabs button{font:inherit;font-size:13px;color:var(--text);background:transparent;border:1px solid var(--line);border-radius:999px;padding:3px 12px;cursor:pointer}
+.tabs button[aria-pressed=true]{background:var(--amber);border-color:var(--amber);color:#1a1206;font-weight:600}
+.tabs button:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.units{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.u{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--bg)}
+.u .n{font-size:12.5px;color:var(--mut);display:flex;align-items:center;gap:6px}
+.u .p{font-size:20px;font-weight:600;margin:2px 0}
+.u .p small{font-size:12px;color:var(--mut);font-weight:400}
+.u .m{font-size:12px;color:var(--mut)}
+.u.off{opacity:.55}
+.wx{display:flex;flex-wrap:wrap;gap:10px 28px}
+.wx div{min-width:110px}.wx b{display:block;font-size:20px;font-weight:600}.wx span{font-size:12.5px;color:var(--mut)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--mut);font-weight:500}
+th:first-child,td:first-child{text-align:left}
+td.ok{color:var(--green);font-weight:600} td.bad{color:var(--amber);font-weight:600}
+.note{color:var(--mut);font-size:12.5px;margin-top:10px}
+footer{color:var(--mut);font-size:12.5px;margin-top:22px}
+@media (prefers-reduced-motion:no-preference){.chip .dot{transition:background .3s}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="plant">Solar Monitor</h1>
+      <div class="sub" id="plantSub">กำลังโหลดข้อมูล…</div>
+    </div>
+    <div class="status">
+      <span class="chip" id="chip"><span class="dot"></span><span id="chipTxt">กำลังโหลด</span></span>
+      <span id="updated"></span>
+    </div>
+  </header>
+
+  <div class="banner" id="banner"></div>
+
+  <section class="kpis" aria-label="สรุป">
+    <div class="card kpi"><div class="l">กำลังผลิตตอนนี้</div><div class="v" id="kP">–</div><div class="s" id="kPs"></div></div>
+    <div class="card kpi"><div class="l">พลังงานวันนี้</div><div class="v" id="kE">–</div><div class="s" id="kEs"></div></div>
+    <div class="card kpi"><div class="l">Inverter ที่กำลังผลิต</div><div class="v" id="kN">–</div><div class="s" id="kNs"></div></div>
+    <div class="card kpi amber"><div class="l">PR รายเดือน (ตามสัญญา)</div><div class="v" id="kPR">–</div><div class="s" id="kPRs"></div></div>
+    <div class="card kpi"><div class="l">EAC เดือนนี้ (มิเตอร์)</div><div class="v" id="kEAC">–</div><div class="s" id="kEACs"></div></div>
+  </section>
+
+  <section class="card" style="margin-bottom:14px">
+    <div class="row"><h2>กำลังผลิตวันนี้ (kW)</h2></div>
+    <div class="chart" id="chCurve"></div>
+  </section>
+
+  <section class="grid2">
+    <div class="card">
+      <div class="row"><h2>พลังงานรายวัน 30 วันล่าสุด (kWh)</h2></div>
+      <div class="chart" id="chDaily"></div>
+    </div>
+    <div class="card">
+      <div class="row"><h2>PR รายวัน (%)</h2><div class="tabs" id="tabs" role="group" aria-label="เลือกเดือน"></div></div>
+      <div class="legend" id="prLegend"></div>
+      <div class="chart" id="chPR"></div>
+    </div>
+  </section>
+
+  <section class="card" style="margin-bottom:14px" id="wxCard" hidden>
+    <h2>สภาพอากาศหน้างาน</h2>
+    <div class="wx" id="wx"></div>
+  </section>
+
+  <section class="card" style="margin-bottom:14px">
+    <h2>Inverter</h2>
+    <div class="units" id="units"></div>
+  </section>
+
+  <section class="card">
+    <div class="row"><h2 id="tblTitle">รายละเอียดรายวัน</h2></div>
+    <div class="tw"><table>
+      <thead><tr><th>วันที่</th><th>EAC (kWh)</th><th>PR ตามสัญญา (%)</th><th>PR Inverter (%)</th><th>Loss (%)</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+    <div class="note">PR ตามสัญญาคำนวณจากเลขมิเตอร์ PEA และพลังงานแสงสุทธิ ส่วน PR Inverter วัดก่อนหม้อแปลงจึงสูงกว่าเล็กน้อย ใช้ติดตามภายใน</div>
+  </section>
+
+  <footer>ข้อมูลแสดงผลอย่างเดียว อัปเดตอัตโนมัติทุก 1 นาที · เวลาประเทศไทย</footer>
+</div>
+
+<script>
+"use strict";
+const TZ = "Asia/Bangkok", OFF = 7 * 3600;
+const $ = s => document.querySelector(s);
+const nf = (v, d = 0) => (v == null || isNaN(v)) ? "–" : Number(v).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const hhmm = ts => { const s = ((ts + OFF) % 86400 + 86400) % 86400; return String(Math.floor(s / 3600)).padStart(2, "0") + ":" + String(Math.floor(s % 3600 / 60)).padStart(2, "0"); };
+const fmtTime = ms => new Date(ms).toLocaleString("th-TH", {timeZone: TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit"});
+
+let SNAP = null, MONTH = null, LAST_OK = 0, FAIL = false;
+
+/* ---------- กราฟ SVG เขียนเอง ไม่พึ่งไลบรารีภายนอก ---------- */
+function niceTicks(lo, hi, n) {
+  const span = hi - lo || 1, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) || raw;
+  const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step, out = [];
+  for (let v = a; v <= b + step / 2; v += step) out.push(+v.toFixed(10));
+  return out;
+}
+
+function chart(el, o) {
+  const W = 720, H = 250, L = 46, R = 10, T = 12, B = 26, iw = W - L - R, ih = H - T - B;
+  const all = [];
+  o.series.forEach(s => s.ys.forEach(v => { if (v != null) all.push(v); }));
+  if (!all.length) { el.innerHTML = '<div class="empty">ยังไม่มีข้อมูล</div>'; return; }
+  let lo = o.ymin != null ? o.ymin : Math.min(...all), hi = o.ymax != null ? o.ymax : Math.max(...all);
+  if (o.pad) { const p = (hi - lo || 1) * 0.12; lo -= p; hi += p; }
+  if (hi <= lo) hi = lo + 1;
+  const tk = niceTicks(lo, hi, 4); lo = tk[0]; hi = tk[tk.length - 1];
+  const X = x => L + (x - o.xmin) / (o.xmax - o.xmin) * iw, Y = y => T + ih - (y - lo) / (hi - lo) * ih;
+  let g = "";
+  tk.forEach(v => { g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text class="axis" x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${nf(v, o.yd || 0)}</text>`; });
+  (o.xticks || []).forEach(t => { g += `<text class="axis" x="${X(t.x)}" y="${H - 8}" text-anchor="middle">${esc(t.label)}</text>`; });
+  o.series.forEach(s => {
+    if (s.kind === "bar") {
+      const bw = Math.max(2, iw / (o.xmax - o.xmin) * 0.68);
+      s.ys.forEach((v, i) => { if (v != null) g += `<rect x="${X(o.xs[i]) - bw / 2}" y="${Y(Math.max(v, lo))}" width="${bw}" height="${Math.max(0, Y(lo) - Y(Math.max(v, lo)))}" rx="1.5" style="fill:${s.color}"/>`; });
+    } else {
+      let d = "", pen = false, first = null, last = null;
+      s.ys.forEach((v, i) => {
+        if (v == null) { pen = false; return; }
+        d += (pen ? "L" : "M") + X(o.xs[i]).toFixed(1) + " " + Y(v).toFixed(1); pen = true;
+        if (first == null) first = i; last = i;
+      });
+      if (s.area && first != null) g += `<path d="${d}L${X(o.xs[last])} ${Y(lo)}L${X(o.xs[first])} ${Y(lo)}Z" style="fill:${s.color};opacity:.14"/>`;
+      g += `<path d="${d}" fill="none" stroke-width="2" stroke-linejoin="round" style="stroke:${s.color}"/>`;
+      if (s.dots) s.ys.forEach((v, i) => { if (v != null) g += `<circle cx="${X(o.xs[i])}" cy="${Y(v)}" r="2.6" style="fill:${s.color}"/>`; });
+    }
+  });
+  if (o.hline != null) g += `<line x1="${L}" x2="${W - R}" y1="${Y(o.hline)}" y2="${Y(o.hline)}" stroke="var(--mut)" stroke-dasharray="4 4"/>`;
+  g += `<line id="xh" y1="${T}" y2="${T + ih}" stroke="var(--mut)" style="display:none"/>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label || "")}">${g}</svg><div class="tip"></div>`;
+  const svg = el.querySelector("svg"), tip = el.querySelector(".tip"), xh = el.querySelector("#xh");
+  svg.addEventListener("pointermove", e => {
+    const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * W;
+    let bi = 0, bd = 1e18;
+    o.xs.forEach((x, i) => { const d = Math.abs(X(x) - px); if (d < bd) { bd = d; bi = i; } });
+    const html = o.tip(bi); if (!html) { tip.style.display = "none"; return; }
+    xh.setAttribute("x1", X(o.xs[bi])); xh.setAttribute("x2", X(o.xs[bi])); xh.style.display = "";
+    tip.innerHTML = html; tip.style.display = "block";
+    tip.style.left = (X(o.xs[bi]) / W * r.width) + "px"; tip.style.top = "0px";
+  });
+  svg.addEventListener("pointerleave", () => { tip.style.display = "none"; xh.style.display = "none"; });
+}
+
+/* ---------- ส่วนแสดงผล ---------- */
+function drawCurve(s) {
+  const c = s.curve || [];
+  if (!c.length) return chart($("#chCurve"), {series: [{ys: []}]});
+  const a = c[0][0] - ((c[0][0] + OFF) % 3600), b = c[c.length - 1][0] + (3600 - ((c[c.length - 1][0] + OFF) % 3600)) % 3600 || c[c.length - 1][0];
+  const xt = []; for (let t = a; t <= b; t += 3600 * 2) xt.push({x: t, label: hhmm(t)});
+  chart($("#chCurve"), {
+    xs: c.map(r => r[0]), xmin: a, xmax: Math.max(b, a + 3600), xticks: xt, ymin: 0, label: "กำลังผลิตวันนี้",
+    series: [{ys: c.map(r => r[1]), color: "var(--amber)", area: true}],
+    tip: i => `<b>${hhmm(c[i][0])}</b> · ${nf(c[i][1], 1)} kW`
+  });
+}
+
+function drawDaily(s) {
+  const d = (s.daily || []).slice(-30);
+  const xt = d.map((r, i) => ({x: i, label: r[0].slice(8)})).filter((t, i) => i % 5 === 0 || i === d.length - 1);
+  chart($("#chDaily"), {
+    xs: d.map((_, i) => i), xmin: -0.5, xmax: Math.max(d.length - 0.5, 0.5), xticks: xt, ymin: 0, label: "พลังงานรายวัน",
+    series: [{kind: "bar", ys: d.map(r => r[1]), color: "var(--blue)"}],
+    tip: i => `<b>${esc(d[i][0])}</b> · ${nf(d[i][1], 0)} kWh`
+  });
+}
+
+function drawPR(s) {
+  const m = (s.pr || {})[MONTH];
+  const lg = $("#prLegend");
+  if (!m) { lg.innerHTML = ""; return chart($("#chPR"), {series: [{ys: []}]}); }
+  const days = m.days.filter(r => r.pr != null || (r.complete && r.inv_pr != null));
+  const nd = m.days.length;
+  const xt = m.days.map((r, i) => ({x: i + 1, label: r.day.slice(8)})).filter(t => +t.label % 5 === 1 || +t.label === nd);
+  const hasInv = days.some(r => r.inv_pr != null);
+  lg.innerHTML = `<span><i style="background:var(--green)"></i>PR ตามสัญญา</span>` + (hasInv ? `<span><i style="background:var(--amber)"></i>PR Inverter</span>` : "") + (m.month_pr != null ? `<span>เฉลี่ยเดือน ${nf(m.month_pr * 100, 2)}%</span>` : "");
+  const ser = [{ys: days.map(r => r.pr == null ? null : r.pr * 100), color: "var(--green)", dots: true}];
+  if (hasInv) ser.push({ys: days.map(r => r.inv_pr == null ? null : r.inv_pr * 100), color: "var(--amber)"});
+  chart($("#chPR"), {
+    xs: days.map(r => +r.day.slice(8)), xmin: 0.5, xmax: nd + 0.5, xticks: xt, pad: true, yd: 0, label: "PR รายวัน",
+    series: ser, hline: m.month_pr != null ? m.month_pr * 100 : null,
+    tip: i => `<b>${esc(days[i].day)}</b><br>PR ${days[i].pr == null ? "–" : nf(days[i].pr * 100, 2) + "%"}` + (days[i].inv_pr != null ? `<br>PR Inverter ${nf(days[i].inv_pr * 100, 2)}%` : "")
+  });
+}
+
+function drawTable(s) {
+  const m = (s.pr || {})[MONTH];
+  $("#tblTitle").textContent = "รายละเอียดรายวัน · " + (MONTH || "");
+  const rows = m ? m.days.filter(r => r.eac != null || r.pr != null).reverse() : [];
+  $("#tbody").innerHTML = rows.length ? rows.map(r => {
+    const bad = r.pr != null && (r.pr > 0.9 || r.pr < 0.5);
+    return `<tr><td>${esc(r.day)}${r.excl ? " (ตัดวัน)" : ""}</td><td>${nf(r.eac, 0)}</td><td class="${r.pr == null ? "" : bad ? "bad" : "ok"}">${r.pr == null ? "–" : nf(r.pr * 100, 2)}</td><td>${r.inv_pr == null ? "–" : nf(r.inv_pr * 100, 2)}</td><td>${nf(r.loss, 1)}</td></tr>`;
+  }).join("") : '<tr><td colspan="5" style="text-align:center;color:var(--mut)">ยังไม่มีข้อมูลเดือนนี้</td></tr>';
+}
+
+function drawTabs(s) {
+  const ks = Object.keys(s.pr || {}).sort().reverse();
+  if (!MONTH || !ks.includes(MONTH)) MONTH = ks[0] || null;
+  $("#tabs").innerHTML = ks.map(k => `<button type="button" data-m="${k}" aria-pressed="${k === MONTH}">${k}</button>`).join("");
+}
+$("#tabs").addEventListener("click", e => {
+  const b = e.target.closest("button[data-m]"); if (!b || !SNAP) return;
+  MONTH = b.dataset.m; drawTabs(SNAP); drawPR(SNAP); drawTable(SNAP);
+});
+
+function drawUnits(s) {
+  const us = s.units || [];
+  $("#units").innerHTML = us.length ? us.map(u => {
+    const live = u.responding !== false, on = live && (u.ac_kw || 0) > 0.1;
+    return `<div class="u ${live ? "" : "off"}"><div class="n"><span class="dot" style="background:${!live ? "var(--red)" : on ? "var(--green)" : "var(--mut)"}"></span>${esc(u.name || "Inverter " + u.unit)}</div>
+      <div class="p">${live ? nf(u.ac_kw, 1) : "–"}<small> kW</small></div>
+      <div class="m">${live ? nf(u.daily_kwh, 0) + " kWh วันนี้" + (u.temp != null ? " · " + nf(u.temp, 0) + "°C" : "") : "ไม่ตอบสนอง"}</div></div>`;
+  }).join("") : '<div class="empty">ยังไม่มีข้อมูล</div>';
+}
+
+function drawWx(s) {
+  const w = s.weather || [], pick = k => { for (const x of w) if (x[k] != null) return x[k]; return null; };
+  const items = [["irr", "ความเข้มแสง", "W/m²", 0], ["amb_temp", "อุณหภูมิอากาศ", "°C", 1], ["pv_temp", "อุณหภูมิแผง", "°C", 1], ["wsp", "ความเร็วลม", "m/s", 1]]
+    .map(([k, l, u, d]) => [pick(k), l, u, d]).filter(x => x[0] != null);
+  $("#wxCard").hidden = !items.length;
+  $("#wx").innerHTML = items.map(([v, l, u, d]) => `<div><b>${nf(v, d)}<small style="font-size:13px;color:var(--mut);font-weight:400"> ${u}</small></b><span>${l}</span></div>`).join("");
+}
+
+function drawTop(s) {
+  const lv = s.live || {}, t = lv.totals || {}, pr = (s.pr || {});
+  $("#plant").textContent = (s.plant && s.plant.name) || "Solar Monitor";
+  $("#plantSub").textContent = s.plant && s.plant.kwp ? "กำลังติดตั้ง DC " + nf(s.plant.kwp / 1000, 3) + " MWp" : "";
+  $("#kP").innerHTML = nf(t.ac_kw, 1) + "<small>kW</small>";
+  $("#kPs").textContent = t.dc_kw != null ? "DC " + nf(t.dc_kw, 1) + " kW" : "";
+  $("#kE").innerHTML = nf(t.daily_kwh, 0) + "<small>kWh</small>";
+  $("#kEs").textContent = s.plant && s.plant.kwp && t.daily_kwh != null ? nf(t.daily_kwh / s.plant.kwp, 2) + " kWh/kWp" : "";
+  $("#kN").innerHTML = (t.producing != null ? t.producing : "–") + "<small>/ " + (t.count != null ? t.count : "–") + " ตัว</small>";
+  $("#kNs").textContent = t.max_temp != null ? "อุณหภูมิสูงสุด " + nf(t.max_temp, 0) + "°C" : "";
+  const keys = Object.keys(pr).sort(), cur = pr[keys[keys.length - 1]];
+  if (cur && cur.month_pr != null) {
+    $("#kPR").innerHTML = nf(cur.month_pr * 100, 2) + "<small>%</small>";
+    $("#kPRs").textContent = (cur.used || 0) + " วันที่ใช้" + (cur.inv_month_pr != null ? " · Inverter " + nf(cur.inv_month_pr * 100, 2) + "%" : "");
+  } else { $("#kPR").textContent = "–"; $("#kPRs").textContent = "รอเลขมิเตอร์"; }
+  if (cur && cur.sum_s) { $("#kEAC").innerHTML = nf(cur.sum_s, 0) + "<small>kWh</small>"; $("#kEACs").textContent = (cur.used || 0) + " วัน (" + cur.month + ")"; }
+  else { $("#kEAC").textContent = "–"; $("#kEACs").textContent = ""; }
+}
+
+function drawStatus(s) {
+  const age = (Date.now() - (s.received || 0)) / 1000, lv = s.live || {};
+  const chip = $("#chip"), txt = $("#chipTxt"), bn = $("#banner");
+  let cls = "ok", label = "ออนไลน์";
+  if (age > 300) { cls = "bad"; label = "ข้อมูลไม่อัปเดต"; }
+  else if (lv.connected === false) { cls = "warn"; label = "ขาดการเชื่อมต่อ SmartLogger"; }
+  chip.className = "chip " + cls; txt.textContent = label;
+  $("#updated").textContent = "ข้อมูลล่าสุด " + fmtTime(s.received || 0);
+  if (age > 300) { bn.textContent = "ระบบหน้างานไม่ได้ส่งข้อมูลมาตั้งแต่ " + fmtTime(s.received) + " ตัวเลขด้านล่างเป็นค่าล่าสุดที่ได้รับ"; bn.classList.add("show"); }
+  else if (FAIL) { bn.textContent = "โหลดข้อมูลล่าสุดไม่สำเร็จ กำลังแสดงข้อมูลเดิม"; bn.classList.add("show"); }
+  else bn.classList.remove("show");
+}
+
+function render(s) {
+  drawTop(s); drawStatus(s); drawCurve(s); drawDaily(s);
+  drawTabs(s); drawPR(s); drawTable(s); drawUnits(s); drawWx(s);
+}
+
+async function load() {
+  try {
+    const r = await fetch("/api/latest", {cache: "no-store"});
+    if (!r.ok) throw new Error(r.status);
+    const s = await r.json();
+    FAIL = false;
+    if (s.empty) { $("#plantSub").textContent = "ยังไม่มีข้อมูลจากหน้างาน (รอ Moxa ส่งข้อมูลครั้งแรก)"; return; }
+    SNAP = s; LAST_OK = Date.now(); render(s);
+  } catch (e) {
+    FAIL = true;
+    if (SNAP) drawStatus(SNAP); else $("#plantSub").textContent = "โหลดข้อมูลไม่สำเร็จ";
+  }
+}
+load();
+setInterval(load, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - LAST_OK > 60000) load(); });
+</script>
+</body>
+</html>
