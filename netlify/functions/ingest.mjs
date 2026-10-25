@@ -17,12 +17,12 @@ function safeEq(a, b) {
 }
 
 // เก็บเฉพาะ field ที่หน้าเว็บใช้ (หน้า /api/latest เป็นสาธารณะ จึงไม่เก็บอย่างอื่นที่แนบมา)
-const KEYS = ["v", "generated", "plant", "live", "units", "weather", "curve", "daily", "pr"];
+const KEYS = ["v", "generated", "plant", "live", "units", "weather", "curve", "daily", "pr", "strings", "revenue", "soiling"];
 
 export default async (req) => {
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
-  const token = process.env.INGEST_TOKEN || "598226c0537fb9102df8b7ed3aed705bf48b68b136d3ff91";
+  const token = Netlify.env.get("INGEST_TOKEN");
   if (!token) return json({ error: "INGEST_TOKEN not set" }, 500);
 
   const auth = req.headers.get("authorization") || "";
