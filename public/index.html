@@ -62,6 +62,8 @@ h3{font-size:14px;margin:18px 0 10px}
 th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}th{color:var(--mut);font-weight:500}
 th:first-child,td:first-child{text-align:left}td.ok{color:var(--green);font-weight:600}td.bad{color:var(--amber);font-weight:600}
 .note{color:var(--mut);font-size:12px;margin-top:10px}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}.sc{border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:12px;color:var(--mut)}.sc b{display:block;color:var(--text);font-weight:500}
+.sc.warn{border-color:var(--amber)}.sc.bad{border-color:var(--red);color:var(--red)}.sc.nc{opacity:.4}
 .slr{display:flex;align-items:center;flex-wrap:wrap;margin-bottom:10px}.sb{border:1px solid var(--line);border-radius:6px;padding:6px 12px;min-width:140px;font-size:12px;background:var(--bg);color:var(--mut)}.sb b{color:var(--text);font-weight:500}
 .sb.off{border-color:var(--red)}.ln{width:34px;height:2px;background:var(--green)}.slr .pill{margin-left:12px}.slr.tot{border-top:1px solid var(--line);padding-top:12px}
 aside{overflow-y:auto}td.l,th.l{text-align:left}
@@ -123,6 +125,11 @@ nav button[aria-current=page]{border-bottom-color:var(--green)}header,.body{padd
     <section data-p="analyze" hidden><div class="kpis" id="aK"></div><div class="card"><div class="row"><h2>เปรียบเทียบผลผลิตต่อพิกัด <span>· kWh/kW วันนี้</span></h2><div class="legend"><span><i style="background:var(--blue)"></i>ปกติ</span><span><i style="background:var(--amber)"></i>ต่ำกว่าค่าเฉลี่ยเกิน 5%</span></div></div><div class="chart" id="chAn"></div><div class="note" id="aN"></div></div></section>
     <section data-p="comm" hidden><div class="card"><div class="row"><h2>สถานะการสื่อสาร</h2></div><div class="tw"><table><thead><tr><th class="l">อุปกรณ์</th><th class="l">ชนิด</th><th class="l">สถานะ</th></tr></thead><tbody id="cT"></tbody></table></div></div></section>
     <section data-p="sys" hidden><div class="kpis" id="sK"></div><div class="card"><div class="tw"><table><thead><tr><th class="l">Inverter</th><th>ID</th><th class="l">รุ่น</th><th class="l">Firmware</th><th>จำนวน String</th><th>พิกัด AC (kW)</th></tr></thead><tbody id="sT"></tbody></table></div></div></section>
+    <section data-p="strings" hidden><div id="stG"></div><div class="note">ขอบสีส้ม = กระแสต่ำกว่า 80% ของค่ามัธยฐานใน Inverter เดียวกัน · สีแดง = มีแรงดันแต่ไม่มีกระแส · จางลง = ไม่ได้ต่อ String</div></section>
+    <section data-p="revenue" hidden><div class="row"><h2>ประมาณการรายได้ <span>· SPP Non-Firm TOU</span></h2><div class="tabs" id="rTabs" role="group" aria-label="เลือกเดือน"></div></div><div class="kpis" id="rK"></div>
+      <div class="card"><div class="row"><h2>รายได้รายวัน <span>· บาท</span></h2></div><div class="chart" id="chRev"></div></div>
+      <div class="card"><div class="tw"><table><thead><tr><th class="l">วันที่</th><th class="l">ประเภทวัน</th><th>Peak kWh</th><th>Off-Peak kWh</th><th>อัตรา Peak / Off-Peak</th><th>รายได้ (บาท)</th></tr></thead><tbody id="rT"></tbody></table></div><div class="note" id="rN"></div></div></section>
+    <section data-p="clean" hidden><div class="kpis" id="cK"></div><div class="card"><div class="row"><h2>PR ปรับอุณหภูมิ <span>· ใช้ประเมินความสกปรกของแผง</span></h2><div class="legend"><span><i style="background:var(--green)"></i>PR</span><span><i style="background:var(--mut)"></i>ระดับฐาน</span></div></div><div class="chart" id="chCl"></div><div class="note" id="cN"></div></div></section>
     <div class="note">ข้อมูลแสดงผลอย่างเดียว อัปเดตอัตโนมัติทุก 1 นาที · เวลาประเทศไทย</div>
   </div>
 </main>
@@ -135,7 +142,7 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const pk=(o,ks)=>{if(o)for(const k of ks)if(o[k]!=null)return o[k];return null};
 const hhmm=t=>{const s=((t+OFF)%86400+86400)%86400;return String(Math.floor(s/3600)).padStart(2,"0")+":"+String(Math.floor(s%3600/60)).padStart(2,"0")};
 const fmtT=ms=>new Date(ms).toLocaleString("th-TH",{timeZone:"Asia/Bangkok",day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit"});
-const PAGES=[["overview","ภาพรวม","M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"],["single","แผนภาพ Single Line","M12 3v6m0 0H6v4m6-4h6v4M6 13v3m12-3v3M4 16h4v4H4zM16 16h4v4h-4z"],["inspect","ตรวจสอบ Inverter","M13 2L4 14h7l-1 8 9-12h-7z"],["analyze","วิเคราะห์กำลังผลิต","M5 21V10m5 11V4m5 17v-8m5 8V7"],["history","ประวัติพลังงาน","M3 20h18M6 16V9m6 7V5m6 11v-6"],["weather","สภาพอากาศ","M3 8h11a3 3 0 10-3-3M3 12h15a3 3 0 11-3 3M3 16h8"],["pr","PR ตามสัญญา","M4 19V5m0 14h16M8 15l4-5 3 3 5-7"],["comm","สถานะการสื่อสาร","M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"],["sys","ข้อมูลระบบ","M12 22a10 10 0 100-20 10 10 0 000 20zM12 16v-5m0-3h.01"]];
+const PAGES=[["overview", "ภาพรวม", "M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"], ["single", "แผนภาพ Single Line", "M12 3v6m0 0H6v4m6-4h6v4M6 13v3m12-3v3M4 16h4v4H4zM16 16h4v4h-4z"], ["inspect", "ตรวจสอบ Inverter", "M13 2L4 14h7l-1 8 9-12h-7z"], ["strings", "ตรวจสอบ String", "M4 6h16M4 12h16M4 18h16"], ["analyze", "วิเคราะห์กำลังผลิต", "M5 21V10m5 11V4m5 17v-8m5 8V7"], ["history", "ประวัติพลังงาน", "M3 20h18M6 16V9m6 7V5m6 11v-6"], ["revenue", "ประมาณการรายได้", "M12 22a10 10 0 100-20 10 10 0 000 20zM14.5 9a2.5 2.5 0 00-2.5-1.5c-1.4 0-2.5.8-2.5 2s1.1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2A2.5 2.5 0 019.5 15M12 6v2M12 16v2"], ["weather", "สภาพอากาศ", "M3 8h11a3 3 0 10-3-3M3 12h15a3 3 0 11-3 3M3 16h8"], ["pr", "PR ตามสัญญา", "M4 19V5m0 14h16M8 15l4-5 3 3 5-7"], ["clean", "ล้างแผงโซลาร์", "M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"], ["comm", "สถานะการสื่อสาร", "M10 14a4 4 0 005.7 0l3-3a4 4 0 00-5.7-5.7l-1 1M14 10a4 4 0 00-5.7 0l-3 3a4 4 0 005.7 5.7l1-1"], ["sys", "ข้อมูลระบบ", "M12 22a10 10 0 100-20 10 10 0 000 20zM12 16v-5m0-3h.01"]];
 let SNAP=null,MONTH=null,PAGE="overview",LAST=0,FAIL=false;
 
 /* ---------- กราฟ SVG (ไม่พึ่งไลบรารี) ---------- */
@@ -302,6 +309,43 @@ function drawSys(s){
   $("#sT").innerHTML=us.map(u=>`<tr><td class="l">${esc(uname(u))}</td><td>${esc(u.unit)}</td><td class="l">${esc(u.model||"–")}</td><td class="l">${esc(u.fw||"–")}</td><td>${nf(u.n_strings,0)}</td><td>${nf(u.rated_kw,0)}</td></tr>`).join("");
 }
 
+const STAT={ok:["ปกติ",""],watch:["เฝ้าระวัง","warn"],plan:["ควรวางแผนล้าง","warn"],now:["ควรล้างตอนนี้","bad"],na:["ยังประเมินไม่ได้","off"]};
+function drawStrings(s){
+  const st=s.strings||[];
+  $("#stG").innerHTML=st.length?st.map(u=>{
+    const med=(a=>a.length?a[Math.floor(a.length/2)]:0)(u.s.map(x=>x[1]).filter(x=>x>.05).sort((a,b)=>a-b));
+    return `<div class="card"><div class="row"><h2>${esc(u.name)} <span>· #${esc(u.unit)} · มัธยฐาน ${nf(med,2)} A</span></h2></div><div class="sg">${u.s.map((x,i)=>{
+      const c=x[0]<50?"nc":med>1&&x[1]<.05?"bad":med>1&&x[1]<med*.8?"warn":"";
+      return `<div class="sc ${c}"><b>PV${i+1}</b>${nf(x[1],2)} A<br>${nf(x[0],0)} V</div>`}).join("")}</div></div>`}).join(""):'<div class="empty card">ยังไม่มีข้อมูล String (รอ Moxa ส่งข้อมูลชุดใหม่)</div>';
+}
+let RM=null;
+function drawRev(s){
+  const r=s.revenue||{},ks=Object.keys(r).sort().reverse();
+  if(!RM||!ks.includes(RM))RM=ks[0]||null;
+  $("#rTabs").innerHTML=ks.map(k=>`<button type="button" data-r="${k}" aria-pressed="${k===RM}">${k}</button>`).join("");
+  const m=r[RM];
+  if(!m||!m.days.length){$("#rK").innerHTML="";$("#rN").textContent="";$("#rT").innerHTML='<tr><td class="l" colspan="6">ยังไม่มีข้อมูลรายได้</td></tr>';return chart($("#chRev"),{series:[{ys:[]}]})}
+  const T=m.total,d=m.days,est=d.some(x=>!x.official);
+  $("#rK").innerHTML=kpi("รายได้รวม",nf(T.rev,2),"บาท")+kpi("พลังงาน",nf(T.kwh,0),"kWh","Peak "+nf(T.peak_kwh,0)+" · Off-Peak "+nf(T.off_kwh,0))+kpi("เฉลี่ย",T.kwh?nf(T.rev/T.kwh,4):"–","บาท/kWh");
+  chart($("#chRev"),{xs:d.map((_,i)=>i),xmin:-.5,xmax:d.length-.5,ymin:0,h:240,label:"รายได้รายวัน",xticks:d.map((x,i)=>({x:i,label:x.day.slice(8)})).filter((t,i)=>i%3===0),
+    series:[{bar:true,ys:d.map(x=>x.rev),color:"var(--green)"}],tip:i=>`<b>${esc(d[i].day)}</b> · ${nf(d[i].rev,2)} บาท`});
+  $("#rT").innerHTML=d.slice().reverse().map(x=>`<tr><td class="l">${esc(x.day)}</td><td class="l">${x.peak_day?"วันทำการ":"Off-Peak ทั้งวัน"}</td><td>${nf(x.peak_kwh,2)}</td><td>${nf(x.off_kwh,2)}</td><td>${nf(x.rate_peak,4)} / ${nf(x.rate_off,4)}${x.official?"":"*"}</td><td>${nf(x.rev,2)}</td></tr>`).join("");
+  $("#rN").textContent="ประมาณการ = พลังงาน AC ของ Inverter × อัตรารับซื้อตามประกาศ (รวม Ft แล้ว) Peak = จันทร์–ศุกร์ 09:00–22:00 ไม่รวมวันหยุดราชการ ค่านี้สูงกว่ามิเตอร์ PEA เล็กน้อย"+(est?" · * = เดือนนี้ยังไม่มีประกาศอัตรา ใช้อัตราล่าสุดแทน":"");
+}
+function drawClean(s){
+  const c=s.soiling,R={no_sensor:"ไม่พบเซนเซอร์แสง",no_dc:"ยังไม่ได้ตั้งกำลังติดตั้ง DC",no_data:"ข้อมูลที่ใช้ได้ยังไม่ถึง 7 วัน"};
+  if(!c){$("#cK").innerHTML="";$("#cN").textContent="ยังไม่มีข้อมูล (รอ Moxa ส่งข้อมูลชุดใหม่)";return chart($("#chCl"),{series:[{ys:[]}]})}
+  const st=STAT[c.status]||STAT.na,ok=(c.days||[]).filter(x=>x[5]&&x[2]!=null);
+  $("#cK").innerHTML=kpi("สถานะ",`<span class="pill ${st[1]}">${st[0]}</span>`,"",c.reason?R[c.reason]||"":"")
+    +(c.loss_pct!=null?kpi("สูญเสียจากฝุ่น",nf(c.loss_pct,1),"%","PR ปัจจุบัน "+nf(c.current,1)+" / ฐาน "+nf(c.baseline,1))+kpi("พลังงานสูญเสีย",nf(c.kwh_day,0),"kWh/วัน","ถ้าล้าง ~ "+nf(c.forecast_kwh,0)+" kWh ใน 30 วันข้างหน้า")
+      +kpi("ควรล้างภายใน",c.days_to_clean==null?"–":c.days_to_clean===0?"ตอนนี้":nf(c.days_to_clean,0),c.days_to_clean>0?"วัน":"",c.reset?"ล้าง/ฝนชะล่าสุด "+esc(c.reset.day)+(c.since_days!=null?" ("+c.since_days+" วันก่อน)":""):""):"");
+  chart($("#chCl"),{xs:ok.map((_,i)=>i),xmin:-.5,xmax:Math.max(ok.length-.5,.5),pad:true,yd:0,h:260,label:"PR ปรับอุณหภูมิ",hline:c.baseline,
+    xticks:ok.map((x,i)=>({x:i,label:x[0].slice(5)})).filter((t,i)=>i%Math.ceil(ok.length/8)===0),
+    series:[{ys:ok.map(x=>x[2]),color:"var(--green)",dots:true}],tip:i=>`<b>${esc(ok[i][0])}</b> · PR ${nf(ok[i][2],1)}%`});
+  const ev=(c.events||[]).map(e=>e.day+" (+"+nf(e.delta,1)+")").join(", "),mn=(c.manual||[]).join(", ");
+  $("#cN").textContent=(ev?"PR กระโดดขึ้น (ฝนชะ/ล้าง): "+ev+" · ":"")+(mn?"บันทึกวันล้าง: "+mn+" · ":"")+"ประเมินจาก PR ที่ปรับอุณหภูมิแล้ว ไม่ใช่คำสั่งล้างแผง";
+}
+
 function drawHead(s){
   const age=(Date.now()-(s.received||0))/1000,lv=s.live||{},ch=$("#chip"),bn=$("#banner");
   let c="",t="SmartLogger ✓";
@@ -320,12 +364,13 @@ function render(){
   document.querySelectorAll("#nav button").forEach(b=>{if(b.dataset.p===PAGE)b.setAttribute("aria-current","page")});
   if(!SNAP)return;
   drawHead(SNAP);
-  ({single:()=>drawSingle(SNAP),inspect:()=>drawInspect(SNAP),analyze:()=>drawAnalyze(SNAP),comm:()=>drawComm(SNAP),sys:()=>drawSys(SNAP),overview:()=>{drawKpis(SNAP);drawCurve(SNAP);drawUnits(SNAP)},history:()=>drawHistory(SNAP),weather:()=>drawWeather(SNAP),pr:()=>drawPR(SNAP)})[PAGE]();
+  ({strings:()=>drawStrings(SNAP),revenue:()=>drawRev(SNAP),clean:()=>drawClean(SNAP),single:()=>drawSingle(SNAP),inspect:()=>drawInspect(SNAP),analyze:()=>drawAnalyze(SNAP),comm:()=>drawComm(SNAP),sys:()=>drawSys(SNAP),overview:()=>{drawKpis(SNAP);drawCurve(SNAP);drawUnits(SNAP)},history:()=>drawHistory(SNAP),weather:()=>drawWeather(SNAP),pr:()=>drawPR(SNAP)})[PAGE]();
 }
 
 /* ---------- เริ่มทำงาน ---------- */
 $("#nav").innerHTML=PAGES.map(p=>`<button type="button" data-p="${p[0]}"><svg class="i" viewBox="0 0 24 24"><path d="${p[2]}"/></svg>${p[1]}</button>`).join("");
 $("#nav").addEventListener("click",e=>{const b=e.target.closest("button[data-p]");if(b){PAGE=b.dataset.p;history.replaceState(null,"","#"+PAGE);render()}});
+$("#rTabs").addEventListener("click",e=>{const b=e.target.closest("button[data-r]");if(b){RM=b.dataset.r;render()}});
 $("#tabs").addEventListener("click",e=>{const b=e.target.closest("button[data-m]");if(b){MONTH=b.dataset.m;render()}});
 const h=location.hash.slice(1);if(PAGES.some(p=>p[0]===h))PAGE=h;
 try{const th=localStorage.getItem("theme");if(th)document.documentElement.dataset.theme=th}catch(e){}
