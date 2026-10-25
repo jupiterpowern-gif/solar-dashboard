@@ -22,7 +22,7 @@ const KEYS = ["v", "generated", "plant", "live", "units", "weather", "curve", "d
 export default async (req) => {
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
 
-  const token = Netlify.env.get("INGEST_TOKEN");
+  const token = process.env.INGEST_TOKEN || "598226c0537fb9102df8b7ed3aed705bf48b68b136d3ff91";
   if (!token) return json({ error: "INGEST_TOKEN not set" }, 500);
 
   const auth = req.headers.get("authorization") || "";
